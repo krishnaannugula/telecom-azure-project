@@ -1,1 +1,1 @@
-# teleom-azure-project
+# telecom-azure-project
