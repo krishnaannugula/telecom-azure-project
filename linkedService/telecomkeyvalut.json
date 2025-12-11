@@ -1,0 +1,11 @@
+{
+	"name": "telecomkeyvalut",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://telecom-key-valut.vault.azure.net/"
+		}
+	}
+}

@@ -1,0 +1,225 @@
+{
+	"name": "PL_Child_Databricks",
+	"properties": {
+		"activities": [
+			{
+				"name": "bronzePath",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "bronze_path",
+					"value": {
+						"value": "@pipeline().parameters.bronze_path",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "If Condition1",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "usecaseFolder",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('checkpoint'), true)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "calling bronze notebook",
+							"type": "DatabricksNotebook",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Shared/bronze/customer_account_ingest",
+								"baseParameters": {
+									"bronze_path": {
+										"value": "@variables('bronze_path')",
+										"type": "Expression"
+									},
+									"usecasefolder": {
+										"value": "@variables('usecasefolder')",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "telecomdbxls",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "failed",
+							"description": "stopexecuting",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "calling bronze notebook",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "checkpoint",
+								"value": false
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "usecaseFolder",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "bronzePath",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "usecasefolder",
+					"value": {
+						"value": "@pipeline().parameters.usecasefolder",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "checkPointFasle",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "If Condition1",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pipelineReturnValue",
+					"value": [
+						{
+							"key": "checkpoint",
+							"value": {
+								"type": "String",
+								"content": "false"
+							}
+						},
+						{
+							"key": "status",
+							"value": {
+								"type": "String",
+								"content": "Failed"
+							}
+						}
+					],
+					"setSystemVariable": true
+				}
+			},
+			{
+				"name": "finalCheckPoint",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "If Condition1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pipelineReturnValue",
+					"value": [
+						{
+							"key": "checkpoint",
+							"value": {
+								"type": "Expression",
+								"content": "@variables('checkpoint')"
+							}
+						},
+						{
+							"key": "status",
+							"value": {
+								"type": "String",
+								"content": "Success"
+							}
+						}
+					],
+					"setSystemVariable": true
+				}
+			}
+		],
+		"parameters": {
+			"bronze_path": {
+				"type": "string",
+				"defaultValue": "abfss://bronze@telecomdatalakestorage.dfs.core.windows.net/inbound/billingAccounts/billingAccounts_20251204_125323.parquet"
+			},
+			"usecasefolder": {
+				"type": "string",
+				"defaultValue": "billingAccounts"
+			}
+		},
+		"variables": {
+			"path": {
+				"type": "String"
+			},
+			"checkpoint": {
+				"type": "Boolean",
+				"defaultValue": true
+			},
+			"bronze_path": {
+				"type": "String",
+				"defaultValue": "abfss://bronze@telecomdatalakestorage.dfs.core.windows.net/inbound/billingAccounts/billingAccounts_20251204_125323.parquet"
+			},
+			"usecasefolder": {
+				"type": "String",
+				"defaultValue": "billingAccounts"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-12-04T16:04:15Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
