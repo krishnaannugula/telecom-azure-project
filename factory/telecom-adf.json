@@ -1,9 +1,0 @@
-{
-	"name": "telecom-adf",
-	"location": "canadacentral",
-	"identity": {
-		"type": "SystemAssigned",
-		"principalId": "e77775aa-19c3-40f9-b739-7521578772fd",
-		"tenantId": "bc3392df-2d88-4af7-abda-ba1f08b067c6"
-	}
-}
