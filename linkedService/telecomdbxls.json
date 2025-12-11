@@ -1,0 +1,21 @@
+{
+	"name": "telecomdbxls",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureDatabricks",
+		"typeProperties": {
+			"domain": "https://adb-2527397167432671.11.azuredatabricks.net",
+			"accessToken": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "newkeyvalutkrish",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "databricksnewtokenkrish",
+				"secretVersion": "2d639023e04b4fbdab7bdc2ffeb2a49d"
+			},
+			"existingClusterId": "1203-102938-h95k1n6i"
+		}
+	}
+}

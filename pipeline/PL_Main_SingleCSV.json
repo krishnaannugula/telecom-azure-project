@@ -1,0 +1,481 @@
+{
+	"name": "PL_Main_SingleCSV",
+	"properties": {
+		"activities": [
+			{
+				"name": "Check_File",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "SetIngestTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "DS_Landing_File",
+						"type": "DatasetReference",
+						"parameters": {
+							"filename": "*.csv"
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "ForEach_File",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Check_File",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Check_File').output.childItems",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Copy_To_Raw",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "filename",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [
+								{
+									"name": "Source",
+									"value": "landingzone/inbound/@{item().name}"
+								},
+								{
+									"name": "Destination",
+									"value": "bronze/@{split(item().name, '.')[0]}/"
+								}
+							],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_Landing_File",
+									"type": "DatasetReference",
+									"parameters": {
+										"filename": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_Raw_Container",
+									"type": "DatasetReference",
+									"parameters": {
+										"folder": {
+											"value": "@concat(variables('bronze'),'/',variables('sinkfolder'))",
+											"type": "Expression"
+										},
+										"filename": {
+											"value": "@variables('sinkfilename')",
+											"type": "Expression"
+										},
+										"container": {
+											"value": "@variables('sinkContainer')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "filename",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "sinkfolder",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "sinkfilename",
+								"value": {
+									"value": "@concat(split(item().name, '.')[0], '_', variables('ingestTime'), '.parquet')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "dbxfilename",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "check file exist",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "dbxfilename",
+								"value": {
+									"value": "@concat('abfss://',variables('sinkContainer'),'@', pipeline().parameters.storageaccount,'.dfs.core.windows.net/', variables('bronze'),'/',variables('sinkfolder'), '/', variables('sinkfilename'))",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "sinkcontiner",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "bronze",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "sinkContainer",
+								"value": {
+									"value": "medallion",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "sinkfolder",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "sinkcontiner",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "sinkfolder",
+								"value": {
+									"value": "@split(item().name, '.')[0]",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "check file exist",
+							"type": "GetMetadata",
+							"dependsOn": [
+								{
+									"activity": "Copy_To_Raw",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "DS_Raw_Container",
+									"type": "DatasetReference",
+									"parameters": {
+										"folder": {
+											"value": "@concat(variables('bronze'),'/',variables('sinkfolder'))",
+											"type": "Expression"
+										},
+										"filename": {
+											"value": "@variables('sinkfilename')",
+											"type": "Expression"
+										},
+										"container": {
+											"value": "@variables('sinkContainer')",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"exists"
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "ParquetReadSettings"
+								}
+							}
+						},
+						{
+							"name": "bronze",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "bronze",
+								"value": "bronze"
+							}
+						},
+						{
+							"name": "CallDatbricksNotebook",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "dbxfilename",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Child_Databricks",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"bronze_path": {
+										"value": "@variables('dbxfilename')",
+										"type": "Expression"
+									},
+									"usecasefolder": {
+										"value": "@variables('sinkfolder')",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "DatabricksNotebookStatus",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "CallDatbricksNotebook",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "pipelineReturnValue",
+								"value": [
+									{
+										"key": "DatabricksCallactivity",
+										"value": {
+											"type": "Expression",
+											"content": "@activity('CallDatbricksNotebook').output.pipelineReturnValue.status"
+										}
+									}
+								],
+								"setSystemVariable": true
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "SetIngestTime",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ingestTime",
+					"value": {
+						"value": "@formatDateTime(utcnow(),'yyyyMMdd_HHmmss')\n",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "outputVariables",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "ForEach_File",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pipelineReturnValue",
+					"value": [
+						{
+							"key": "pipelinename",
+							"value": {
+								"type": "Expression",
+								"content": "@pipeline().Pipeline"
+							}
+						},
+						{
+							"key": "status",
+							"value": {
+								"type": "String",
+								"content": "success"
+							}
+						}
+					],
+					"setSystemVariable": true
+				}
+			}
+		],
+		"parameters": {
+			"storageaccount": {
+				"type": "string",
+				"defaultValue": "telecomdatalakestorage"
+			}
+		},
+		"variables": {
+			"ingestTime": {
+				"type": "String"
+			},
+			"sinkfilename": {
+				"type": "String"
+			},
+			"dbxfilename": {
+				"type": "String"
+			},
+			"sinkContainer": {
+				"type": "String"
+			},
+			"Storage": {
+				"type": "String"
+			},
+			"sinkfolder": {
+				"type": "String"
+			},
+			"bronze": {
+				"type": "String"
+			},
+			"checkpoint": {
+				"type": "Boolean",
+				"defaultValue": true
+			},
+			"outputvaribale": {
+				"type": "String"
+			},
+			"outputdata": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-12-04T16:00:16Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

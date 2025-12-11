@@ -1,0 +1,11 @@
+{
+	"name": "newkeyvalutkrish",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://new-key-valut.vault.azure.net/"
+		}
+	}
+}

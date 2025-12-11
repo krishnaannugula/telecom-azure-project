@@ -1,0 +1,25 @@
+{
+	"name": "BlobEventsTrigger",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PL_Main_SingleCSV",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "BlobEventsTrigger",
+		"typeProperties": {
+			"blobPathBeginsWith": "/landingzone/blobs/inbound/",
+			"blobPathEndsWith": "*:csv",
+			"ignoreEmptyBlobs": true,
+			"scope": "/subscriptions/742bef84-f81d-4556-8c82-40263f8d0125/resourceGroups/telecom-data-pipeline-rg/providers/Microsoft.Storage/storageAccounts/telecomdatalakestorage",
+			"events": [
+				"Microsoft.Storage.BlobCreated"
+			]
+		}
+	}
+}
